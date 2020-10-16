@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>DATABASE</ID>
+  <OriginalElement>4b0019fc-6a16-457b-8a36-8fd6f894fec2.SCHEMA:cinema</OriginalElement>
+  <nodes>
+    <node x="173.0" y="384.0">4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Users</node>
+    <node x="402.0" y="0.0">4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Hall</node>
+    <node x="201.0" y="204.0">4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Shows</node>
+    <node x="0.0" y="24.0">4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Screen</node>
+    <node x="205.0" y="12.0">4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Movie</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Shows" target="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Screen">
+      <point x="-61.66666666666666" y="-65.0" />
+      <point x="231.83333333333334" y="179.0" />
+      <point x="92.5" y="179.0" />
+      <point x="0.0" y="53.0" />
+    </edge>
+    <edge source="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Shows" target="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Movie">
+      <point x="0.0" y="-65.0" />
+      <point x="0.0" y="65.0" />
+    </edge>
+    <edge source="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Users" target="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Shows">
+      <point x="0.0" y="-77.0" />
+      <point x="0.0" y="65.0" />
+    </edge>
+    <edge source="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Shows" target="4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Hall">
+      <point x="61.666666666666686" y="-65.0" />
+      <point x="355.1666666666667" y="179.0" />
+      <point x="502.0" y="179.0" />
+      <point x="0.0" y="77.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="301.0" y="269.0" />
+  <SelectedNodes>
+    <node>4b0019fc-6a16-457b-8a36-8fd6f894fec2.TABLE:cinema.Movie</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Key columns</Category>
+    <Category>Columns</Category>
+    <Category>Virtual foreign keys</Category>
+  </Categories>
+</Diagram>
+
