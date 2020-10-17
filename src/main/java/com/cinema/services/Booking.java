@@ -6,15 +6,11 @@ import com.cinema.model.Screen;
 import com.cinema.model.Shows;
 import com.cinema.model.Users;
 import com.cinema.util.RedisUtil;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.json.JsonObject;
-import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -22,7 +18,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -76,11 +71,9 @@ public class Booking {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response bookTickets(String bookingDetailsJSON) throws JSONException {
 		JSONObject jsonMsg = new JSONObject();
-
-		JSONObject bookingDetails = new JSONObject(bookingDetailsJSON);
 		
 		try {
-			System.out.println("JSONBOOKING::: "+bookingDetails);
+			JSONObject bookingDetails = new JSONObject(bookingDetailsJSON);
 			Long showId = Long.valueOf(bookingDetails.getString("showId"));
 			String seatNumbers = bookingDetails.getString("seatNumbers");
 			String userName = bookingDetails.getString("userName");
@@ -105,7 +98,6 @@ public class Booking {
 
 				JSONArray bookingQueue = new JSONArray();
 				String redisIndex = String.valueOf(showId);
-				System.out.println("HAS INDEX::: "+redisIndex+" ::: "+RedisUtil.hasKeyInRedis(redisIndex));
 				if (RedisUtil.hasKeyInRedis(redisIndex)) {
 					bookingQueue = new JSONArray(String.valueOf(RedisUtil.getValueFromRedis(redisIndex)));
 					RedisUtil.deleteKeyFromRedis(redisIndex);
@@ -120,16 +112,15 @@ public class Booking {
 
 			final BookingConcurrency currentBooking = new BookingConcurrency(showId, seatNumArr, userName, mobileNumber, bookingInitiatedTime);
 			
-			logg.log(Level.INFO, "Starting thread");
+			logg.log(Level.INFO, "Starting booking thread");
 			Thread bookingThread = new Thread(currentBooking);
 			bookingThread.start();
-			logg.log(Level.INFO, "Joining thread");
+			logg.log(Level.INFO, "Joining booking thread");
 			bookingThread.join();
 			Boolean statusResponse = currentBooking.getBookedStatus();
 			logg.log(Level.INFO, "Response for booking thread::: {0}", String.valueOf(statusResponse));	
 			
 			if(statusResponse) {
-				System.out.println("SEATNUMS::: "+String.join(",", seatNumArr));
 				Users currentUser = new Users(userName, mobileNumber, String.join(",", seatNumArr), new Shows(showId));
 				currentUser.addOrUpdateUserDetails();
 				
@@ -145,9 +136,9 @@ public class Booking {
 		} catch(Exception e) {
 			logg.log(Level.SEVERE, "Error while booking tickets", e);
 			jsonMsg.put("STATUS", "Error");
-			jsonMsg.put("MESSAGE", "Error occurred");
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jsonMsg.toString()).build();
+			jsonMsg.put("MESSAGE", "Error occurred while booking tickets");
+			responseMsg = Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jsonMsg.toString()).build();
 		}
-		return Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
+		return responseMsg;
 	}
 }

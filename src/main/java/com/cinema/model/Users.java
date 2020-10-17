@@ -185,7 +185,8 @@ public class Users {
 				mobileNumber = jObj.getLong(TABLE_COLUMNS[1]);
 				seatsBooked = jObj.getString(TABLE_COLUMNS[2]);
 				showDetails = new Shows(jObj.getLong(TABLE_COLUMNS[3]));
-				isPaid = jObj.getBoolean(TABLE_COLUMNS[4]);
+				System.out.println(TABLE_COLUMNS[4]);
+				isPaid = Boolean.valueOf(jObj.getString(TABLE_COLUMNS[4]));
 			} else {
 				logg.log(Level.SEVERE, "Data not found");
 				throw new Exception("Data not found");
