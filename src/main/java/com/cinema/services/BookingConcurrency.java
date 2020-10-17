@@ -44,46 +44,12 @@ public class BookingConcurrency implements Runnable {
 			e.printStackTrace();
 		}
 		try {
-			isBooked = bookTickets();
+			BookingService bkservice = BookingService.getInstance();
+			isBooked = bkservice.bookTickets(showId, seatNumArr, userName, mobileNumber, bookingStartTime);
 			logg.log(Level.INFO, "Booked ticket result:: {0}", String.valueOf(isBooked));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 	
-	/* Checks the booking time and seat priorities*/
-	public synchronized Boolean bookTickets() throws Exception {
-
-		logg.log(Level.INFO, "Starting bookTickets()");
-		Boolean canBookTickets = Boolean.TRUE;
-		String redisIndex = String.valueOf(showId);
-		List<String> currUser = Arrays.asList(seatNumArr);
-		HashSet<String> commonSet =  new HashSet<>(currUser);
-		
-		if(RedisUtil.hasKeyInRedis(redisIndex)) {
-			JSONArray bookingQueue = new JSONArray(String.valueOf(RedisUtil.getValueFromRedis(redisIndex)));
-			for(int i=0;i<bookingQueue.length();i++) {
-				JSONObject userDetails = bookingQueue.getJSONObject(i);
-				
-				//Avoid checking for same user
-				if(!userName.equals(userDetails.getString("userName")) && !mobileNumber.equals(userDetails.getLong("mobileNumber"))) {
-					//Check if booking time is same (FIFO)
-					if(bookingStartTime.compareTo(userDetails.getLong("bookingTime")) > 0) {
-						canBookTickets = Boolean.FALSE;
-					}
-					//Checking if any seat is common
-					List<String> iterateUser = Arrays.asList(userDetails.getString("seatNumbers"));
-					commonSet.retainAll(iterateUser);
-					if(!commonSet.isEmpty() && (currUser.size() < iterateUser.size())) {
-						canBookTickets = Boolean.FALSE;					
-					}
-				}
-				if(canBookTickets == Boolean.FALSE) {
-					return canBookTickets;
-				}
-			}
-		}
-		RedisUtil.deleteKeyFromRedis(redisIndex);		
-		return canBookTickets;
-	}
 }

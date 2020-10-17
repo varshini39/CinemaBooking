@@ -37,14 +37,16 @@ public class DBOperations implements Serializable {
 	
 	public Boolean establishDBConnection() {
 		try	{
-			Class.forName("com.mysql.jdbc.Driver");
+			Class.forName("com.mysql.cj.jdbc.Driver");
 		}
 		catch(ClassNotFoundException c)	{
 			System.out.println("Error while initializing driver");
 			logg.log(Level.SEVERE, "Error while initializing driver ::: ", c);
 		}
 		try {
-			connectDB = DriverManager.getConnection(databaseURL, username, password);
+			if(connectDB == null || connectDB.isClosed()) {
+				connectDB = DriverManager.getConnection(databaseURL, username, password);
+			}
 			if (connectDB != null) {
 				System.out.println("Database Connected!");
 				return Boolean.TRUE;

@@ -20,49 +20,21 @@ public class PaymentThread implements Runnable {
 	@Override
 	public void run() {
 		try {
-			isPaymentDone = makePayment();
+			PaymentService pmService = PaymentService.getInstance();
+			isPaymentDone = pmService.makePayment(userDetails);
 			logg.log(Level.INFO, "Payment result:: {0}", String.valueOf(isPaymentDone));
 		} catch (InterruptedException ie) {
 			logg.log(Level.SEVERE, "Payment timeout");
 		} catch (Exception e) {
 			logg.log(Level.SEVERE, "Exception::: ", e);
 			e.printStackTrace();
+			try {
+				throw e;
+			} catch (Exception exception) {
+				exception.printStackTrace();
+				logg.log(Level.SEVERE, "Error while throwing Exception::: ", e);
+			}
 		}
-	}
-
-	public Boolean makePayment() throws Exception {
-		Boolean isPaymentSuccess = Boolean.FALSE;
-		String seatsBooked = userDetails.getSeatsBooked();
-		String[] seatsArr = seatsBooked.split(",");
-		
-		 Boolean paymentDone = makePaymentUsingThirdParty();
-		if(paymentDone) {
-			
-			userDetails.setIsPaid(Boolean.TRUE);
-			userDetails.updateUserDetails();
-			
-			Shows showDetails = userDetails.getShowDetails();
-			showDetails.populateShowDetails();
-			
-			Hall hallDetails = showDetails.getHallDetails();
-			hallDetails.populateHallDetails();
-			int seatsNumBooked = hallDetails.getSeatsBooked();
-			seatsNumBooked += seatsArr.length;
-			hallDetails.setSeatsBooked(seatsNumBooked);
-			hallDetails.updateHallDetails();
-			
-			isPaymentSuccess = Boolean.TRUE;
-			
-			logg.log(Level.INFO, "Payment Done successfully");
-		}
-		
-		return isPaymentSuccess;
-	}
-	
-	//This method is used to call the third party payment services
-	public  Boolean makePaymentUsingThirdParty() throws Exception {
-		//Thread.sleep(180000);  //For testing purpose
-		return Boolean.TRUE;
 	}
 	
 }

@@ -33,9 +33,9 @@ public class Main {
 		/*Hall hallDetails = new Hall(5L);
 		hallDetails.populateHallDetails();*/
 
-		Movie movieDetails = new Movie(2L);
-		Screen screenDetails = new Screen(1L);
-		Hall hallDetails = new Hall(4L);
+		Movie movieDetails = new Movie(1L);
+		Screen screenDetails = new Screen(2L);
+		Hall hallDetails = new Hall(1L);
 		Shows showDetails = new Shows(movieDetails, screenDetails, hallDetails);
 		showDetails.addShowDetails();
 		Long showId = showDetails.getShowId();
