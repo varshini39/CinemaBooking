@@ -4,34 +4,57 @@ import com.cinema.util.RedisUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import javax.ws.rs.core.Response;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class BookingConcurrency {
+public class BookingConcurrency implements Runnable {
 
-	/*Adds the user to the booking queue*/
-	public void addBookingQueue(Long showId, String[] seatNumArr, String userName, Long mobileNumber, Long bookingStartTime) throws Exception {
+	Logger logg = Logger.getLogger(this.getClass().getName());
 
-		JSONObject userDetails = new JSONObject();
-		userDetails.put("userName", userName);
-		userDetails.put("mobileNumber", mobileNumber);
-		userDetails.put("seatNumbers", seatNumArr);
-		userDetails.put("bookingTime", bookingStartTime);
-		
-		JSONArray bookingQueue = new JSONArray();
-		String redisIndex = String.valueOf(showId);
-		if(RedisUtil.hasKeyInRedis(redisIndex)) {
-			bookingQueue = new JSONArray(String.valueOf(RedisUtil.getValueFromRedis(redisIndex)));
+	Long showId;
+	String[] seatNumArr;
+	String userName;
+	Long mobileNumber;
+	Long bookingStartTime;
+	Boolean isBooked;
+
+	public BookingConcurrency(Long showId, String[] seatNumArr, String userName, Long mobileNumber, Long bookingStartTime) {
+		logg.log(Level.INFO, "Initializing Booking Concurrency!");
+		this.showId = showId;
+		this.seatNumArr = seatNumArr;
+		this.userName = userName;
+		this.mobileNumber = mobileNumber;
+		this.bookingStartTime = bookingStartTime;
+	}
+
+	public Boolean getBookedStatus() {
+		return isBooked;
+	}
+
+	@Override
+	public void run() {
+		//Sleep for 1 second, to check the bookings at same time
+		try {
+			logg.log(Level.INFO, "Thread in sleep");
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
-		bookingQueue.put(userDetails);
-		
+		try {
+			isBooked = bookTickets();
+			logg.log(Level.INFO, "Booked ticket result:: {0}", String.valueOf(isBooked));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/* Checks the booking time and seat priorities*/
-	public synchronized Boolean bookTickets(Long showId, String[] seatNumArr, String userName, Long mobileNumber, Long bookingStartTime) throws Exception {
+	public synchronized Boolean bookTickets() throws Exception {
 
+		logg.log(Level.INFO, "Starting bookTickets()");
 		Boolean canBookTickets = Boolean.TRUE;
 		String redisIndex = String.valueOf(showId);
 		List<String> currUser = Arrays.asList(seatNumArr);
@@ -60,8 +83,7 @@ public class BookingConcurrency {
 				}
 			}
 		}
-		
-		RedisUtil.deleteKeyFromRedis(redisIndex);
+		RedisUtil.deleteKeyFromRedis(redisIndex);		
 		return canBookTickets;
-	} 
+	}
 }

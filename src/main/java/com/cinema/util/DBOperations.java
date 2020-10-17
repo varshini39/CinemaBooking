@@ -11,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -84,13 +86,13 @@ public class DBOperations implements Serializable {
 			}
 		}
 				
-		String insertQuery = "INSERT into `"+tableName+"`("+columns+") VALUES("+valPlaceHolder+")";
+		String insertQuery = "INSERT into "+tableName+"("+columns+") VALUES("+valPlaceHolder+")";
 		PreparedStatement preStmtDB = connectDB.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
 		
 		for(int i=0;i<columnNum;i++) {
 			preStmtDB.setObject(i+1, values[i]);
 		}
-		System.out.println("PREPARED STATEMENT::: "+preStmtDB);
+		System.out.println("PREPARED STATEMENT - ADD ROW::: "+preStmtDB);
 		preStmtDB.executeUpdate();
 		
 		ResultSet rs = preStmtDB.getGeneratedKeys();
@@ -110,13 +112,13 @@ public class DBOperations implements Serializable {
 	 * @param criteriaVal Column value to be updated for reference ***/
 	public void updateRows(String tableName, String[] updateColumns, String[] updateValues, String criteriaCol, String criteriaVal) throws Exception {
 		
-		String setQuery = "";
+		StringBuilder setQuery = new StringBuilder();
 		for(String colName : updateColumns) {
-			setQuery = colName+"=?,";
+			setQuery.append(colName).append("=?,");
 		}
-		setQuery = setQuery.substring(0, setQuery.length() - 1);
+		setQuery = new StringBuilder(setQuery.substring(0, setQuery.length() - 1));
 		
-		String updateQuery = "UPDATE `"+tableName+"` SET "+setQuery+" WHERE "+criteriaCol+"=?";
+		String updateQuery = "UPDATE "+tableName+" SET "+setQuery+" WHERE "+criteriaCol+"=?";
 		PreparedStatement preStmtDB = connectDB.prepareStatement(updateQuery);
 		
 		int i=1;
@@ -126,7 +128,7 @@ public class DBOperations implements Serializable {
 		}
 		preStmtDB.setObject(i, criteriaVal);
 
-		System.out.println("PREPARED STATEMENT::: "+preStmtDB);
+		System.out.println("PREPARED STATEMENT - UPDATE ROW::: "+preStmtDB);
 		int affectedRows = preStmtDB.executeUpdate();
 
 		System.out.println("Number of rows updated::: "+affectedRows);
@@ -143,11 +145,11 @@ public class DBOperations implements Serializable {
 
 		JSONArray jarr = new JSONArray();
 		
-		String selectQuery = "SELECT "+displayColNames+" from `"+tableName+"` WHERE "+criteriaCol+"=?";
+		String selectQuery = "SELECT "+displayColNames+" from "+tableName+" WHERE "+criteriaCol+"=?";
 		PreparedStatement preStmtDB = connectDB.prepareStatement(selectQuery);
 
 		preStmtDB.setObject(1, criteriaVal);
-		System.out.println("PREPARED STATEMENT::: "+preStmtDB);
+		System.out.println("PREPARED STATEMENT - VIEW ROW::: "+preStmtDB);
 		ResultSet rs = preStmtDB.executeQuery();
 		ResultSetMetaData rsmd = rs.getMetaData();
 
@@ -160,6 +162,53 @@ public class DBOperations implements Serializable {
 			jarr.put(jobj);
 		}
 		
+		return jarr;
+
+	}
+
+	/**
+	 * This method is used to insert rows to table
+	 * @param tableName Name of the table
+	 * @param displayColNames Column names (with comma separated) or "*" for All
+	 * @param criteria All the criteria name and values will be stored in HashMap ***/
+	public JSONArray viewRows(String tableName, String displayColNames, HashMap<String,String> criteria) throws Exception {
+
+		JSONArray jarr = new JSONArray();
+		
+		StringBuilder criteriaStr = new StringBuilder();
+		ArrayList<String> colVals = new ArrayList<>();
+		int itrPointer = 0;
+		for(String criteriaCol : criteria.keySet()) {
+			String criteriaVal = criteria.get(criteriaCol);
+			criteriaStr.append(criteriaCol).append("=").append("?");
+			
+			if(itrPointer != (criteria.size()-1)) {
+				criteriaStr.append(" AND ");
+			}
+			colVals.add(criteriaVal);
+			itrPointer++;
+		}
+
+		String selectQuery = "SELECT "+displayColNames+" from "+tableName+" WHERE "+criteriaStr;
+		PreparedStatement preStmtDB = connectDB.prepareStatement(selectQuery);
+
+		for(int i=0; i<colVals.size(); i++) {
+			String criteriaVal = colVals.get(i);
+			preStmtDB.setObject(i+1, criteriaVal);
+		}
+		System.out.println("PREPARED STATEMENT - VIEW ROW::: "+preStmtDB);
+		ResultSet rs = preStmtDB.executeQuery();
+		ResultSetMetaData rsmd = rs.getMetaData();
+
+		while(rs.next()) {
+			JSONObject  jobj = new JSONObject();
+			int colCount = rsmd.getColumnCount();
+			for(int i=0; i<colCount; i++) {
+				jobj.put(rsmd.getColumnName(i+1), rs.getString(i+1));
+			}
+			jarr.put(jobj);
+		}
+
 		return jarr;
 
 	}

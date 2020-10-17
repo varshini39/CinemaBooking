@@ -6,17 +6,23 @@ import com.cinema.model.Screen;
 import com.cinema.model.Shows;
 import com.cinema.model.Users;
 import com.cinema.util.RedisUtil;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.json.JsonObject;
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,11 +34,11 @@ public class Booking {
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response fetchBookingDetails() {
+	public Response fetchBookingDetails(@QueryParam("userId") Long userId) {
 		JSONObject bookingDetails = new JSONObject();
 
 		try {
-			Users userDetails = new Users(2L);
+			Users userDetails = new Users(userId);
 			userDetails.populateUserDetails();
 			bookingDetails.put("USER_NAME", userDetails.getName());
 			bookingDetails.put("USER_CONTACT", userDetails.getMobileNumber());
@@ -66,11 +72,19 @@ public class Booking {
 	}
 	
 	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response bookTickets(@FormParam("showId") Long showId,@FormParam("seatNumbers") String seatNumbers, @FormParam("userName") String userName, @FormParam("mobileNumber") Long mobileNumber) throws JSONException {
+	public Response bookTickets(String bookingDetailsJSON) throws JSONException {
 		JSONObject jsonMsg = new JSONObject();
+
+		JSONObject bookingDetails = new JSONObject(bookingDetailsJSON);
 		
 		try {
+			System.out.println("JSONBOOKING::: "+bookingDetails);
+			Long showId = Long.valueOf(bookingDetails.getString("showId"));
+			String seatNumbers = bookingDetails.getString("seatNumbers");
+			String userName = bookingDetails.getString("userName");
+			Long mobileNumber = Long.valueOf(bookingDetails.getString("mobileNumber"));
 			Long bookingInitiatedTime = System.currentTimeMillis();
 
 			String[] seatNumArr = seatNumbers.split(",");
@@ -81,39 +95,52 @@ public class Booking {
 				return responseMsg;
 			}
 
-			final BookingConcurrency currentBooking = new BookingConcurrency();
-			
-			currentBooking.addBookingQueue(showId, seatNumArr, userName, mobileNumber, bookingInitiatedTime);
-						
-			new Thread() {
-				@Override
-				public void run() {
-					try {
-						//Sleep for 1 second, to check the bookings at same time
-						sleep(1000);
-						Boolean statusResponse = currentBooking.bookTickets(showId, seatNumArr, userName, mobileNumber, bookingInitiatedTime);
-						if(statusResponse) {
-							jsonMsg.put("STATUS", "Success");
-							jsonMsg.put("MESSAGE", "Maximum of 6 seats can be booked");
-							responseMsg = Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
-						} else {
-							jsonMsg.put("STATUS", "Error");
-							jsonMsg.put("MESSAGE", "Tcikets already booked, please try again!");
-							responseMsg = Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
-						}
-						
-					} catch (Exception e) {
-						logg.log(Level.SEVERE, "Error while booking tickets", e);
-						try {
-							jsonMsg.put("STATUS", "Error");
-							jsonMsg.put("MESSAGE", "Error while booking tickets");
-							responseMsg = Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(jsonMsg.toString()).build();
-						} catch (Exception ex) {
-							logg.log(Level.SEVERE, "Error while creating error json:: ", ex);
-						}
-					}
+			//Add the user to booking queue
+			try {
+				JSONObject userDetails = new JSONObject();
+				userDetails.put("userName", userName);
+				userDetails.put("mobileNumber", mobileNumber);
+				userDetails.put("seatNumbers", seatNumArr);
+				userDetails.put("bookingTime", bookingInitiatedTime);
+
+				JSONArray bookingQueue = new JSONArray();
+				String redisIndex = String.valueOf(showId);
+				System.out.println("HAS INDEX::: "+redisIndex+" ::: "+RedisUtil.hasKeyInRedis(redisIndex));
+				if (RedisUtil.hasKeyInRedis(redisIndex)) {
+					bookingQueue = new JSONArray(String.valueOf(RedisUtil.getValueFromRedis(redisIndex)));
+					RedisUtil.deleteKeyFromRedis(redisIndex);
 				}
-			}.start();
+				bookingQueue.put(userDetails);
+				
+				RedisUtil.storeValueToRedis(redisIndex, bookingQueue);
+				
+			} catch (Exception e) {
+				logg.log(Level.SEVERE, "Error while adding booking details:: ", e);
+			}
+
+			final BookingConcurrency currentBooking = new BookingConcurrency(showId, seatNumArr, userName, mobileNumber, bookingInitiatedTime);
+			
+			logg.log(Level.INFO, "Starting thread");
+			Thread bookingThread = new Thread(currentBooking);
+			bookingThread.start();
+			logg.log(Level.INFO, "Joining thread");
+			bookingThread.join();
+			Boolean statusResponse = currentBooking.getBookedStatus();
+			logg.log(Level.INFO, "Response for booking thread::: {0}", String.valueOf(statusResponse));	
+			
+			if(statusResponse) {
+				System.out.println("SEATNUMS::: "+String.join(",", seatNumArr));
+				Users currentUser = new Users(userName, mobileNumber, String.join(",", seatNumArr), new Shows(showId));
+				currentUser.addOrUpdateUserDetails();
+				
+				jsonMsg.put("STATUS", "Success");
+				jsonMsg.put("MESSAGE", "Booking successful. Proceeding to payment!");
+				responseMsg = Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
+			} else {
+				jsonMsg.put("STATUS", "Error");
+				jsonMsg.put("MESSAGE", "Tickets already booked, please try again!");
+				responseMsg = Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
+			}
 			
 		} catch(Exception e) {
 			logg.log(Level.SEVERE, "Error while booking tickets", e);

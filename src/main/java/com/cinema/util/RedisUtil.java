@@ -96,9 +96,8 @@ public class RedisUtil {
 		{
 			redisPool = getRedisConnection();
 			if(hasKeyInRedis(key)) {
+				logger.log(Level.INFO, "Deleting key {0} in redis", key);
 				redisPool.del(key);
-			} else {
-				throw new Exception("Key does not exist");
 			}
 		}
 		catch (Exception e) {

@@ -4,6 +4,7 @@ import com.cinema.util.DBOperations;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,9 +17,10 @@ public class Users {
 	private Long mobileNumber;
 	private String seatsBooked;
 	private Shows showDetails;
+	private Boolean isPaid = Boolean.FALSE;
 	private static final String TABLE_NAME = "Users";
 	private static final String TABLE_PKCOL = "USER_ID";
-	private static final String[] TABLE_COLUMNS = {"NAME", "MOBILE_NUMBER", "SEATS_BOOKED", "SHOW_ID"};
+	private static final String[] TABLE_COLUMNS = {"NAME", "MOBILE_NUMBER", "SEATS_BOOKED", "SHOW_ID", "IS_PAID"};
 
 	public Users(Long userId, String name, Long mobileNumber, String seatsBooked, Shows showDetails) {
 		this.userId = userId;
@@ -28,15 +30,15 @@ public class Users {
 		this.showDetails = showDetails;
 	}
 
-	public Users(Long userId) {
-		this.userId = userId;
-	}
-
 	public Users(String name, Long mobileNumber, String seatsBooked, Shows showDetails) {
 		this.name = name;
 		this.mobileNumber = mobileNumber;
 		this.seatsBooked = seatsBooked;
 		this.showDetails = showDetails;
+	}
+
+	public Users(Long userId) {
+		this.userId = userId;
 	}
 
 	public Long getUserId() {
@@ -79,6 +81,14 @@ public class Users {
 		this.showDetails = showDetails;
 	}
 
+	public Boolean getIsPaid() {
+		return isPaid;
+	}
+
+	public void setIsPaid(Boolean isPaid) {
+		this.isPaid = isPaid;
+	}
+
 	public void fetchBookingDetails() {
 		String movieName = showDetails.getMovieDetails().getName();
 		String hallName = showDetails.getHallDetails().getName();
@@ -91,7 +101,8 @@ public class Users {
 			Boolean isConnSuccess = dbMovieOp.establishDBConnection();
 
 			if(isConnSuccess) {
-				String[] updateValues = {name, String.valueOf(mobileNumber), String.valueOf(seatsBooked), String.valueOf(showDetails.getShowId())};
+				int paidVal = isPaid? 1 : 0;
+				String[] updateValues = {name, String.valueOf(mobileNumber), String.valueOf(seatsBooked), String.valueOf(showDetails.getShowId()), String.valueOf(paidVal)};
 				Long resultUserId = dbMovieOp.insertRows(TABLE_NAME, String.join(",", TABLE_COLUMNS), updateValues);
 				setUserId(resultUserId);
 			}
@@ -110,7 +121,8 @@ public class Users {
 			Boolean isConnSuccess = dbMovieOp.establishDBConnection();
 
 			if(isConnSuccess) {
-				String[] updateValues = {name, String.valueOf(mobileNumber), String.valueOf(seatsBooked), String.valueOf(showDetails.getShowId())};
+				int paidVal = isPaid? 1 : 0;
+				String[] updateValues = {name, String.valueOf(mobileNumber), String.valueOf(seatsBooked), String.valueOf(showDetails.getShowId()), String.valueOf(paidVal)};
 				dbMovieOp.updateRows(TABLE_NAME, TABLE_COLUMNS, updateValues, TABLE_PKCOL, String.valueOf(userId));
 			}
 
@@ -119,6 +131,41 @@ public class Users {
 		} catch (Exception e) {
 			System.out.println("Error while updating user details");
 			logg.log(Level.SEVERE, "Error while updating user details ::: ", e);
+		}
+	}
+	
+	public void addOrUpdateUserDetails() {
+		try {
+			int paidVal = isPaid? 1 : 0;
+			String[] updateValues = {name, String.valueOf(mobileNumber), String.valueOf(seatsBooked), String.valueOf(showDetails.getShowId()), String.valueOf(paidVal)};
+			DBOperations dbMovieOp = DBOperations.getInstance();
+			Boolean isConnSuccess = dbMovieOp.establishDBConnection();
+
+			if(isConnSuccess) {
+				HashMap<String, String> criteria = new HashMap<>();
+				criteria.put("NAME", name); 
+				criteria.put("MOBILE_NUMBER", String.valueOf(mobileNumber)); 
+				criteria.put("SHOW_ID", String.valueOf(showDetails.getShowId())); 
+				
+				JSONArray jArr = dbMovieOp.viewRows(TABLE_NAME, String.join(",", TABLE_COLUMNS)+",USER_ID", criteria);
+				if(jArr!=null && jArr.length()>0) {
+					JSONObject jObj = jArr.getJSONObject(0);
+					Long userId = jObj.getLong("USER_ID");
+					setUserId(userId);
+					logg.log(Level.INFO, "Updating the row");
+					dbMovieOp.updateRows(TABLE_NAME, TABLE_COLUMNS, updateValues, TABLE_PKCOL, String.valueOf(userId));
+				} else {
+					logg.log(Level.SEVERE, "Adding new row");
+					Long resultUserId = dbMovieOp.insertRows(TABLE_NAME, String.join(",", TABLE_COLUMNS), updateValues);
+					setUserId(resultUserId);
+				}
+			}
+
+			dbMovieOp.closeDBConnection();
+			System.out.println("USER DETAILS ADDED/UPDATED SUCCESSFULLY!!!");
+		} catch (Exception e) {
+			System.out.println("Error while adding/updating user details");
+			logg.log(Level.SEVERE, "Error while adding/updating user details ::: ", e);
 		}
 	}
 
@@ -138,6 +185,7 @@ public class Users {
 				mobileNumber = jObj.getLong(TABLE_COLUMNS[1]);
 				seatsBooked = jObj.getString(TABLE_COLUMNS[2]);
 				showDetails = new Shows(jObj.getLong(TABLE_COLUMNS[3]));
+				isPaid = jObj.getBoolean(TABLE_COLUMNS[4]);
 			} else {
 				logg.log(Level.SEVERE, "Data not found");
 				throw new Exception("Data not found");
