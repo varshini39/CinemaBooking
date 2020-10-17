@@ -78,20 +78,13 @@ public class Booking {
 				jsonMsg.put("STATUS", "Error");
 				jsonMsg.put("MESSAGE", "Maximum of 6 seats can be booked");
 				responseMsg = Response.status(Response.Status.NOT_ACCEPTABLE).entity(jsonMsg.toString()).build();
+				return responseMsg;
 			}
 
 			final BookingConcurrency currentBooking = new BookingConcurrency();
-			new Thread() {
-				@Override
-				public void run() {
-					try {
-						currentBooking.addBookingQueue(showId, seatNumArr, userName, mobileNumber, bookingInitiatedTime);
-					} catch (Exception e) {
-						logg.log(Level.SEVERE, "Error while adding user to booking queue", e);
-					}
-				}
-			}.start();
 			
+			currentBooking.addBookingQueue(showId, seatNumArr, userName, mobileNumber, bookingInitiatedTime);
+						
 			new Thread() {
 				@Override
 				public void run() {
@@ -105,7 +98,7 @@ public class Booking {
 							responseMsg = Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
 						} else {
 							jsonMsg.put("STATUS", "Error");
-							jsonMsg.put("MESSAGE", "Failed to book tickets, please try again!");
+							jsonMsg.put("MESSAGE", "Tcikets already booked, please try again!");
 							responseMsg = Response.status(Response.Status.OK).entity(jsonMsg.toString()).build();
 						}
 						

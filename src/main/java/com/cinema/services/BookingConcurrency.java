@@ -12,7 +12,7 @@ import java.util.List;
 public class BookingConcurrency {
 
 	/*Adds the user to the booking queue*/
-	public synchronized void addBookingQueue(Long showId, String[] seatNumArr, String userName, Long mobileNumber, Long bookingStartTime) throws Exception {
+	public void addBookingQueue(Long showId, String[] seatNumArr, String userName, Long mobileNumber, Long bookingStartTime) throws Exception {
 
 		JSONObject userDetails = new JSONObject();
 		userDetails.put("userName", userName);
