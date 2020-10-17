@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -29,8 +30,20 @@ public class Booking {
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response fetchBookingDetails(@QueryParam("userId") Long userId) {
+	public Response fetchBookingDetails(@QueryParam("userId") Long userId, @HeaderParam("authorization") String authString) {
 		JSONObject bookingDetails = new JSONObject();
+		
+		UserAuth authenticateUser = new UserAuth();
+		Boolean isUserAuth = authenticateUser.authenticateUser(authString);
+		if(!isUserAuth) {
+			try {
+				bookingDetails.put("STATUS", "ERROR");
+				bookingDetails.put("MESSAGE", "UNAUTHORIZED");
+			} catch(Exception e) {
+				logg.log(Level.SEVERE, "Error while forming JSON::: ", e);
+			}
+			return Response.status(Response.Status.UNAUTHORIZED).entity(bookingDetails.toString()).build();
+		}
 
 		try {
 			Users userDetails = new Users(userId);
@@ -59,6 +72,12 @@ public class Booking {
 
 		} catch (Exception e) {
 			logg.log(Level.SEVERE, "Error while fetching booking details", e);
+			try {
+				bookingDetails.put("STATUS", "ERROR");
+				bookingDetails.put("MESSAGE", "Error while fetching booking details");
+			} catch(Exception ex) {
+				logg.log(Level.SEVERE, "Error while forming JSON::: ", e);
+			}
 		}
 		System.out.println("BOOKING DETAILS::: "+bookingDetails);
 		logg.log(Level.INFO, "Booking Details::: "+bookingDetails);
@@ -69,8 +88,20 @@ public class Booking {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response bookTickets(String bookingDetailsJSON) throws JSONException {
+	public Response bookTickets(String bookingDetailsJSON, @HeaderParam("authorization") String authString) throws JSONException {
 		JSONObject jsonMsg = new JSONObject();
+
+		UserAuth authenticateUser = new UserAuth();
+		Boolean isUserAuth = authenticateUser.authenticateUser(authString);
+		if(!isUserAuth) {
+			try {
+				jsonMsg.put("STATUS", "ERROR");
+				jsonMsg.put("MESSAGE", "UNAUTHORIZED");
+			} catch(Exception e) {
+				logg.log(Level.SEVERE, "Error while forming JSON::: ", e);
+			}
+			return Response.status(Response.Status.UNAUTHORIZED).entity(jsonMsg.toString()).build();
+		}
 		
 		try {
 			JSONObject bookingDetails = new JSONObject(bookingDetailsJSON);

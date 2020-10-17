@@ -5,6 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -21,8 +22,20 @@ public class Payment {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response makePayment(String paymentDetailsJSON) throws JSONException {
+	public Response makePayment(String paymentDetailsJSON, @HeaderParam("authorization") String authString) throws JSONException {
 		JSONObject jsonMsg = new JSONObject();
+
+		UserAuth authenticateUser = new UserAuth();
+		Boolean isUserAuth = authenticateUser.authenticateUser(authString);
+		if(!isUserAuth) {
+			try {
+				jsonMsg.put("STATUS", "ERROR");
+				jsonMsg.put("MESSAGE", "UNAUTHORIZED");
+			} catch(Exception e) {
+				logg.log(Level.SEVERE, "Error while forming JSON::: ", e);
+			}
+			return Response.status(Response.Status.UNAUTHORIZED).entity(jsonMsg.toString()).build();
+		}
 		
 		try {
 			JSONObject paymentDetails = new JSONObject(paymentDetailsJSON);

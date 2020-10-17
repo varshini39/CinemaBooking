@@ -33,17 +33,20 @@ public class Main {
 		/*Hall hallDetails = new Hall(5L);
 		hallDetails.populateHallDetails();*/
 
-		/*Shows showDetails = new Shows(movieDetails, screenDetails, hallDetails);
+		Movie movieDetails = new Movie(2L);
+		Screen screenDetails = new Screen(1L);
+		Hall hallDetails = new Hall(4L);
+		Shows showDetails = new Shows(movieDetails, screenDetails, hallDetails);
 		showDetails.addShowDetails();
 		Long showId = showDetails.getShowId();
 		System.out.println("SHOWID::: "+showId);
 		
-		Users userDetails = new Users("Sheldon Cooper", 32444224444L, "1,3,4", showDetails);
+		/*Users userDetails = new Users("Sheldon Cooper", 32444224444L, "1,3,4", showDetails);
 		userDetails.addUserDetails();
 		Long userId = userDetails.getUserId();
 		System.out.println("USERID::: "+userId);*/
 
-		try {
+		/*try {
 			JSONArray jarr = new JSONArray();
 			JSONObject jobj = new JSONObject();
 			jobj.put("test", "hello");
@@ -62,6 +65,6 @@ public class Main {
 		} catch(Exception e) {
 			System.out.println("EXCEPTION e::: " + e);
 			e.printStackTrace();
-		}
+		}*/
 	}
 }
