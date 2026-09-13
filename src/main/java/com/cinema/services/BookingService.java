@@ -35,8 +35,9 @@ public class BookingService implements Serializable {
 		List<String> currUser = Arrays.asList(seatNumArr);
 		HashSet<String> commonSet =  new HashSet<>(currUser);
 
+		JSONArray bookingQueue = null;
 		if(RedisUtil.hasKeyInRedis(redisIndex)) {
-			JSONArray bookingQueue = new JSONArray(String.valueOf(RedisUtil.getValueFromRedis(redisIndex)));
+			bookingQueue = new JSONArray(String.valueOf(RedisUtil.getValueFromRedis(redisIndex)));
 			for(int i=0;i<bookingQueue.length();i++) {
 				JSONObject userDetails = bookingQueue.getJSONObject(i);
 
@@ -54,12 +55,37 @@ public class BookingService implements Serializable {
 					}
 				}
 				if(canBookTickets == Boolean.FALSE) {
-					return canBookTickets;
+					break;
 				}
 			}
 		}
-		RedisUtil.deleteKeyFromRedis(redisIndex);
+
+		//This attempt is now resolved (won or lost) - drop only its own entry, keep other pending attempts queued
+		removeAttemptFromQueue(redisIndex, bookingQueue, userName, mobileNumber, bookingStartTime);
+
 		return canBookTickets;
+	}
+
+	private void removeAttemptFromQueue(String redisIndex, JSONArray bookingQueue, String userName, Long mobileNumber, Long bookingStartTime) throws Exception {
+		if(bookingQueue == null) {
+			return;
+		}
+
+		JSONArray remainingQueue = new JSONArray();
+		for(int i=0;i<bookingQueue.length();i++) {
+			JSONObject userDetails = bookingQueue.getJSONObject(i);
+			Boolean isThisAttempt = userName.equals(userDetails.getString("userName"))
+					&& mobileNumber.equals(userDetails.getLong("mobileNumber"))
+					&& bookingStartTime.equals(userDetails.getLong("bookingTime"));
+			if(!isThisAttempt) {
+				remainingQueue.put(userDetails);
+			}
+		}
+
+		RedisUtil.deleteKeyFromRedis(redisIndex);
+		if(remainingQueue.length() > 0) {
+			RedisUtil.storeValueToRedis(redisIndex, remainingQueue);
+		}
 	}
 
 }

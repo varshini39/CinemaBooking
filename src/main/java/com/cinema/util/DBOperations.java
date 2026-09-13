@@ -19,9 +19,9 @@ import java.util.logging.Logger;
 public class DBOperations implements Serializable {
 
 	Connection connectDB = null;
-	String databaseURL = "jdbc:mysql://localhost:3306/cinema";
-	String username = "movie";
-	String password = "test";
+	String databaseURL = AppConfig.get("db.url");
+	String username = AppConfig.get("db.username");
+	String password = AppConfig.get("db.password");
 	Logger logg = Logger.getLogger(this.getClass().getName());
 
 	public static DBOperations dbOperations = null;

@@ -7,8 +7,8 @@ import redis.clients.jedis.Jedis;
 public class RedisUtil {
 	
 	static Logger logger = Logger.getLogger(RedisUtil.class.getName());
-	private static final String REDIS_HOST = "127.0.0.1";
-	private static final int REDIS_PORT = 6379;
+	private static final String REDIS_HOST = AppConfig.get("redis.host");
+	private static final int REDIS_PORT = AppConfig.getInt("redis.port");
 	private static Jedis redisPool = null;
 	
 	/* This method is used for establishing redis connection */
